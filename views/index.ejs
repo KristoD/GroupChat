@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Group Chat</title>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script type ="text/javascript" src="/socket.io/socket.io.js"></script>
+    <script type ="text/javascript">
+        $(document).ready(function() {
+            var socket = io.connect();
+            var username;
+            if(!username) {
+                username = prompt("Username:");
+            }
+            socket.emit('new_user', {username: username});
+            socket.on('broadcast_user', function(data) {
+                $('#chat').append("<p style='color: green;'>" + data.username + " has joined the channel. </p>");
+                $('#chat').animate({scrollTop: $('#chat').prop("scrollHeight")}, 500);
+            });
+            socket.on('previous_messages', function(data) {
+                for(var i = 0; i < data.messages.length; i++) {
+                    $('#chat').append("<p>" + data.messages[i] + "</p>")
+                }
+                $('#chat').animate({scrollTop: $('#chat').prop("scrollHeight")}, 500);
+            })
+            $('form').submit(function() {
+                socket.emit('new_message', {message: $('input[name=message]').val(), username: username});
+                $('input[name=message').val('')
+                $('#chat').animate({scrollTop: $('#chat').prop("scrollHeight")}, 500);
+                return false;
+            });
+            socket.on('broadcast_message', function(data) {
+                $('#chat').append("<p>" + data.response + "</p>");
+                $('#chat').animate({scrollTop: $('#chat').prop("scrollHeight")}, 500);
+            });
+            socket.on('disconnected_user', function(data) {
+                $('#chat').append("<p style='color: red'>" + data.username + " has left the channel. </p>");
+                $('#chat').animate({scrollTop: $('#chat').prop("scrollHeight")}, 500);
+            });
+            window.onbeforeunload = function() {
+                socket.emit('disconnected', {username: username});
+                socket.disconnect();
+            }
+        });
+    </script>
+</head>
+<body>
+
+    <div style="margin: 0 auto; width: 100%;">
+        <div id="chat" style="overflow: scroll; height: 210px; border: 1px solid black;"></div>
+        <form action="/">
+            <input name="message" autocomplete="off">
+            <input type="submit" value="Send">
+        </form>
+    </div>
+    
+</body>
+</html>
